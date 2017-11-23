@@ -5,13 +5,70 @@ function screen() {
 }
 
 
-function move(sn) {
+function move() {
+	if (sn==2 && start==0) {
+		startCounter();
+	} else if (boosting && start == 1 && sn == 2) {
+		sn = 4;
+		console.log("GAME OVER")
+		
+
+	} else if (sn==2 && start==2) {
+		console.log("playerY: " + playerY + " playerVy: " + playerVy + " boosting?: " + boosting + " boostAmount: " + boostAmount + " seconds: " + time + " finished?: " + finished);
+		miles = playerY/3333
+		playerX += playerVx;
+		if(hasBoosted) {
+			playerY += playerVy;
+		}
+		if ((!heldRight && !heldLeft)||(heldRight && heldLeft)) {
+			if (Math.floor(playerVx*2) != 0) { // if Vx is not a small decimal
+				if (playerVx > 0) {
+					playerVx -= friction;
+				} else if (playerVx < 0)
+					playerVx += friction;
+			}
+		}
+		if (playerVx <= 5 && heldRight && !heldLeft) {
+			playerVx += playerAx;
+		}
+		if (playerVx >= -5 && heldLeft && !heldRight) {
+			playerVx -= playerAx;
+		}
+		if (boosting && boostAmount > 0 && !finished) {
+			if (playerVy <= boostLim) {
+				playerVy += boostA;
+			} 
+			boostAmount--;
+		} else {
+			if (playerVy > 1) {
+				playerVy -= boostA;
+			}
+		}
+		if(playerY > 10000) {
+			timeFinal = time;
+			finished = true;
+		}
+		if (playerVy == 0) {
+			sn = 3;
+			console.log(timeFinal);
+		}
+		if (finished && sn == 2 && playerVy>0) {
+			console.log("im slowing down")
+			playerVy -= 0.005;
+		}
+		if (finished && playerVy < 0 && sn == 2) {
+			playerVy = 0;
+		}
+
+
+
+	}
 
 
 
 }
 
-function draw(sn) {
+function draw() {
 	if (sn==0) {
 		rect(0,0,cWidth,cHeight,'black');
 		text("ROOSEY PROJECT",cWidth/2,cHeight/2-100,'white',90,true);
@@ -23,24 +80,57 @@ function draw(sn) {
 		text("Select your character",cWidth/2,100,'white',50,true);
 		drawCharacters();
 		drawCharacterText();
-
-		
-		
-		
-		
-		
-
-
 	} else if (sn==2) {
 		rect(0,0,cWidth,cHeight,'green');
-		canvasContext.drawImage(tylerimg,100,200,150,180);
-	} 
+		circle(playerX,cHeight*(3/4),35,'white');
+		rect(0,0,330,100,'gray');
+		rect(15,15,boostAmount/2,75,'lime');
+		canvasContext.font = "30px helvetica"
+		canvasContext.fillStyle = 'white'
+		canvasContext.textAlign="right";
+		canvasContext.fillText(Math.floor(miles*10)/10 + " miles",cWidth-15,50);
+		canvasContext.fillText(time + " seconds",cWidth-15,100);
+
+	} else if (sn==-1) {
+		rect(cWidth * (1/5),cHeight * (1/3),cWidth*(3/5),cHeight*(1/3),'gray');
+		text("Paused",cWidth/2,cHeight/2-50,'black',50,true);
+		text("Press escape to continue",cWidth/2,cHeight/2+50,'black',35,true)
+	} else if (sn==3) {
+		rect(cWidth * (1/5),cHeight * (1/3),cWidth*(3/5),cHeight*(1/3),'gold');
+		text("You finished 1st place!",cWidth/2,cHeight/2-50,'black',50,true);
+		text("Your time was " + time + " seconds",cWidth/2,cHeight/2+50,'black',35,true);
+		text("Click to restart",cWidth/2,cHeight/2+100,'black',30,true);
+	} else if (sn==4) {
+		rect(cWidth * (1/5),cHeight * (1/3),cWidth*(3/5),cHeight*(1/3),'black');
+		text("You false started!",cWidth/2,cHeight/2-50,'white',50,true);
+		text("What a failure! ",cWidth/2,cHeight/2+50,'white',35,true);
+		text("Click to restart",cWidth/2,cHeight/2+100,'white',30,true);
+	}
+
 	mouseDebug();
 
 
 
 }
 
+function startCounter() {
+	if (start == 0) {
+		start = 1;
+		setTimeout(function() {
+			console.log("3");
+		},500);
+		setTimeout(function() {
+			console.log("2");
+		},1500);
+		setTimeout(function() {
+			console.log("1");
+		},2500);
+		setTimeout(function() {
+			console.log("GO");
+			start = 2;
+		},3500);
+}
+}
 
 
 
@@ -58,7 +148,10 @@ function mouseDebug() {
 	var mouseGridX = Math.floor(mouseX / GRID_X);
 	var mouseGridY = Math.floor(mouseY / GRID_Y);
 	mouseIndex = colRow(mouseGridX,mouseGridY);
-	text(Math.floor(mouseX)+","+Math.floor(mouseY)+" : " + mouseIndex, mouseX,mouseY, 'yellow', 30, false);
+	if (mouseDebugEnabled) {
+		text(Math.floor(mouseX)+","+Math.floor(mouseY)+" : " + mouseIndex, mouseX,mouseY, 'yellow', 30, false);
+	}
+	
 
 
 }
@@ -69,20 +162,82 @@ function click() {
 
 }
 
-function key(e) {
+function keyDown(e) {
 	pressAnything();
 	selectSecretCharacter(e);
+	pause(e);
+	unpause(e);
+	playerMoveInput(e);
+	boost(e);
+
+}
+
+function keyUp(e) {
+	playerMoveInputRelease(e);
+	boostRelease(e);
+}
+
+function boost(ex) {
+	if (ex.keyCode == 32 && boostAmount >= 0 && sn == 2) {
+		boosting = true;
+		hasBoosted = true;
+	}
+
+}
+
+function boostRelease(ex) {
+	if (ex.keyCode == 32 && sn == 2) {
+		boosting = false;
+	}
+}
 
 
+function playerMoveInput(ex) {
+	if (ex.keyCode == 39) {
+		heldRight = true;
+	} else if (ex.keyCode == 37) {
+		heldLeft = true;
+	}
+}
+
+function playerMoveInputRelease(ex) {
+	if (ex.keyCode == 39) {
+		heldRight = false;
+	} else if (ex.keyCode == 37) {
+		heldLeft = false;
+	}
+}
+
+function pause(ex) {
+	if(sn==2) {
+		if(ex.keyCode==27) { //escape
+			sn=-1;
+			select.play();
+			pauseWait = true;
+		
+		}	
+	}
+
+}
+
+function unpause(ex) {
+	if(sn==-1) {
+		setTimeout(function() {
+			pauseWait = false;
+		},50);
+		if(ex.keyCode==27 && !pauseWait) {
+			select.play();
+			sn=2;
+		}
+
+	}
 
 }
 
 function pressAnything() {
 	if(sn==0) {
 		//sound
-		setTimeout(function() {
-			snAdd();
-		});
+		snAdd();
 	}
 
 }
@@ -164,6 +319,7 @@ function characterSelected() {
 function snAdd() {
 	setTimeout(function() {
 			sn++;
+			select.play()
 			console.log("sn " + (sn-1) + " -> " + sn);
 		});
 }
@@ -228,7 +384,7 @@ function drawCharacters() {
 	canvasContext.drawImage(matthewimg,600,200,100,100);
 	canvasContext.drawImage(tylerimg,700,200,100,100);
 	canvasContext.drawImage(tylerimg,200,400,100,100);
-	canvasContext.drawImage(tylerimg,300,400,100,100);
+	canvasContext.drawImage(kevinimg,300,400,100,100);
 	canvasContext.drawImage(tylerimg,400,400,100,100);
 	canvasContext.drawImage(allenimg,500,400,100,100);
 	canvasContext.drawImage(tylerimg,600,400,100,100);
@@ -244,10 +400,11 @@ function drawCharacterText() {
 		text("lil don",650,315,'white',17,true);
 		text("A-A-Ron",750,315,'white',17,true);
 		text("Ricky",250,515,'white',17,true);
-		text("KevKev",350,515,'white',17,true);
+		text("Snake",350,515,'white',17,true);
 		text("Waluigi",450,515,'white',17,true);
 		text("ALLEN",550,515,'white',17,true);
-		text("Dog Eater",650,515,'white',17,true);
-		text("Potts",450,715,'white',17,true);
+		text("Ling Ling",650,515,'white',17,true);
+		text("Mr.Pottsible",450,715,'white',17,true);
 
 }
+
